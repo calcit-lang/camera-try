@@ -1,7 +1,7 @@
 
 {} (:package |app)
   :configs $ {} (:init-fn |app.main/main!) (:reload-fn |app.main/reload!) (:version |0.0.1)
-    :modules $ [] |respo.calcit/ |lilac/ |memof/ |respo-ui.calcit/ |respo-markdown.calcit/ |reel.calcit/
+    :modules $ [] |respo.calcit/ |lilac/ |memof/ |respo-ui.calcit/ |reel.calcit/
   :entries $ {}
   :files $ {}
     |app.comp.container $ %{} :FileEntry
@@ -15,32 +15,55 @@
                   cursor $ or (:cursor states) ([])
                   state $ or (:data states)
                     {} $ :content "\""
-                div
-                  {} $ :style (merge ui/global ui/row)
-                  textarea $ {}
-                    :value $ :content state
-                    :placeholder "\"Content"
-                    :style $ merge ui/expand ui/textarea
-                      {} $ :height 320
-                    :on-input $ fn (e d!)
-                      d! cursor $ assoc state :content (:value e)
-                  =< 8 nil
+                [] (effect-load-video)
                   div
-                    {} $ :style ui/expand
-                    comp-md "|This is some content with `code`"
-                    =< |8px nil
-                    button $ {} (:style ui/button) (:inner-text "\"Run")
-                      :on-click $ fn (e d!)
-                        println $ :content state
-                  when dev? $ comp-reel (>> states :reel) reel ({})
+                    {}
+                      :class-name $ str-spaced css/global css/row css/fullscreen css/flex
+                      :style $ {} (; :flex 1)
+                        :background-color $ hsl 170 20 18
+                    create-element :video $ {} (:class-name style-video) (:plays-inline true) (:autoplay true)
+                    when dev? $ comp-reel (>> states :reel) reel ({})
+        |connect-video! $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn connect-video! (el) (hint-fn async) (; js/console.log "js/stream.getVideoTracks()[0].getSettings().aspectRatio")
+              let
+                  constraints $ js-object (:audio false)
+                    :video $ {}
+                  stream $ js-await (js/navigator.mediaDevices.getUserMedia constraints)
+                  video-el $ .!querySelector el "\"video"
+                set! (.-srcObject video-el) stream
+                ; set! (.-srcObject js/window) stream
+                js/console.log "js/stream.getVideoTracks()[0].getSettings().aspectRatio"
+                js/console.log "\"Connected Video."
+        |effect-load-video $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defeffect effect-load-video () (action el at?)
+              if (= action :mount)
+                try (connect-video! el)
+                  fn (e) (js/console.error e)
+        |style-video $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defstyle style-video $ {}
+              "\"&" $ {} (:transform "\"scaleX(-1)") (:margin :auto)
+                :border $ str-spaced "\"6px solid" (hsl 0 0 32)
+                :border-radius "\"8px"
+                :box-shadow $ str-spaced "\"0 0 1px" (hsl 0 0 0)
+                :transition-duration "\"240ms"
+                :min-height "\"72vh"
+                :translate "\"0px 1px"
+              "\"&:hover" $ {}
+                :box-shadow $ str-spaced "\"0 2px 6px" (hsl 0 0 0 0.2)
+                :translate "\"0px 0px"
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.container $ :require (respo-ui.core :as ui)
-            respo.core :refer $ defcomp defeffect <> >> div button textarea span input
+            respo.core :refer $ defcomp defeffect <> >> div button textarea span input create-element
             respo.comp.space :refer $ =<
             reel.comp.reel :refer $ comp-reel
-            respo-md.comp.md :refer $ comp-md
             app.config :refer $ dev?
+            respo.css :refer $ defstyle
+            respo-ui.css :as css
+            respo.util.format :refer $ hsl
     |app.config $ %{} :FileEntry
       :defs $ {}
         |dev? $ %{} :CodeEntry (:doc |)
